@@ -43,8 +43,8 @@ public class UICanvas : MonoBehaviour
     //set up mac dinh cho UI de tranh truong hop bi nhay' hinh
     public virtual void Setup()
     {
-        CS_UIManager.Ins.AddBackUI(this);
-        CS_UIManager.Ins.PushBackAction(this, BackKey);
+        UIManager.Ins.AddBackUI(this);
+        UIManager.Ins.PushBackAction(this, BackKey);
     }
 
     //back key in android device
@@ -65,7 +65,7 @@ public class UICanvas : MonoBehaviour
     //dong truc tiep, ngay lap tuc
     public virtual void CloseDirectly()
     {
-        CS_UIManager.Ins.RemoveBackUI(this);
+        UIManager.Ins.RemoveBackUI(this);
         gameObject.SetActive(false);
         if (IsDestroyOnClose)
         {

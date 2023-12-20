@@ -1,4 +1,4 @@
-using mygame.sdk;
+
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -15,9 +15,6 @@ public class SafeAreaCheck : MonoBehaviour
         {
             GetComponent<RectTransform>().offsetMax = new Vector2(GetComponent<RectTransform>().offsetMax.x, -Screen.safeArea.yMin * (0.7f));
             GetComponent<RectTransform>().offsetMin = new Vector2(GetComponent<RectTransform>().offsetMin.x, 25);
-            if(!SdkUtil.isiPad())
-            {
-            }
         }
     }
 }
