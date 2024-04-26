@@ -8,14 +8,14 @@ public class ExampleSOData : ScriptableObject
 {
     [SerializeField] ExampleObject[] objs;
 
-    //[ContextMenu("RegenID")]
-    //void RegenID()
-    //{
-    //    for (int i = 0; i < cars.Length; i++)
-    //    {
-    //        cars[i].id = i;
-    //    }
-    //}
+    [ContextMenu("RegenID")]
+    void RegenID()
+    {
+        for (int i = 0; i < cars.Length; i++)
+        {
+            cars[i].id = i;
+        }
+    }
 
     //[ContextMenu("AutoRegenStats")]
     //void RegenStats()
