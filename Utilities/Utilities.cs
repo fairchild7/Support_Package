@@ -130,4 +130,24 @@ public static class Utilities
         UnityEditor.AssetDatabase.Refresh();
 #endif
     }
+
+    public static void ChangeMaterialRecursively(GameObject obj, Material material)
+    {
+        Renderer[] renderers = obj.GetComponentsInChildren<Renderer>();
+
+        foreach (Renderer renderer in renderers)
+        {
+            Material[] newMaterials = new Material[renderer.materials.Length];
+            for (int i = 0; i < renderer.materials.Length; i++)
+            {
+                newMaterials[i] = material;
+            }
+            renderer.materials = newMaterials;
+        }
+    }
+
+    public static string FormatDateTime(DateTime dt)
+    {
+        return dt.ToString("HH:mm dd/MM/yyyy");
+    }
 }
