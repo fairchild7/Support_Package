@@ -25,6 +25,16 @@ public class UIManager : Singleton<UIManager>
         return canvas as T;
     }
 
+    public T PreloadUI<T>() where T : UICanvas
+    {
+        UICanvas canvas = GetUI<T>();
+        
+        canvas.Setup();
+        canvas.Preload();
+
+        return canvas as T;
+    }
+
     public void CloseUI<T>() where T : UICanvas
     {
         if (IsOpened<T>())

@@ -61,6 +61,11 @@ public class UICanvas : MonoBehaviour
         gameObject.SetActive(true);
     }
 
+    public virtual void Preload()
+    {
+        gameObject.SetActive(false);
+    }
+
     //close canvas directly
     //dong truc tiep, ngay lap tuc
     public virtual void CloseDirectly()
