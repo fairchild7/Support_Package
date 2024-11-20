@@ -6,19 +6,25 @@ using UnityEngine.Audio;
 public class AudioManager : Singleton<AudioManager>
 {
     [SerializeField] AudioMixer audioMixer;
-    [SerializeField] AudioSource bgmAudioSource;
-    [SerializeField] AudioMixerGroup sfxMixer;
-    [SerializeField] List<SFXAudioClip> clips = new List<SFXAudioClip>();
 
-    private Dictionary<SFXType, AudioSource> createdSFXAudio = new Dictionary<SFXType, AudioSource>();
+    [SerializeField] AudioMixerGroup sfxMixer;
+
+    #region Pool Part
+    [SerializeField] AudioSource sfxAudioSourceShell;
+
+    private List<AudioSource> sfxShellPool = new List<AudioSource>();
+
+    #endregion
+
+    [SerializeField] List<BGMAudio> bgms = new List<BGMAudio>();
+    [SerializeField] List<SFXAudioClip> clips = new List<SFXAudioClip>();
 
     const string MIXER_BGM = "BGMVolume";
     const string MIXER_SFX = "SFXVolume";
 
-    [SerializeField] float jumpSFXCooldown = 0.5f;
+    AudioSource currentBGM;
 
-    private float jumpSFXTimer = 0f;
-
+   
     private void Awake()
     {
         this.RegisterListener(EventID.SetMusicSetting, (param) =>
@@ -43,16 +49,50 @@ public class AudioManager : Singleton<AudioManager>
                 MuteSFXVolume();
             }
         });
-        this.RegisterListener(EventID.PlaySFX, (param) => PlaySFXAudio((SFXType)param));
-        this.RegisterListener(EventID.StopSFX, (param) => StopSFXAudio((SFXType)param));
+        this.RegisterListener(EventID.PlaySFX, (param) => PlaySFX((SFXType)param));
+        //this.RegisterListener(EventID.StopSFX, (param) => StopSFXAudio((SFXType)param));
     }
 
-    private void Update()
+    public void PlayBGM(BGMType type)
     {
-        jumpSFXTimer += Time.deltaTime;     
+        for (int i = 0; i < bgms.Count; i++)
+        {
+            if (bgms[i].type == type)
+            {
+                if (currentBGM == bgms[i].audioSource)
+                {
+                    return;
+                }
+                else
+                {
+                    if (currentBGM != null)
+                    {
+                        if (currentBGM.isPlaying)
+                        {
+                            currentBGM.Stop();
+                        }
+                    }
+                    currentBGM = bgms[i].audioSource;
+                    currentBGM.Play();
+                    return;
+                }
+            }
+        }
     }
 
-    private void PlaySFXAudio(SFXType type)
+    public void StopBGM()
+    {
+        if (currentBGM != null)
+        {
+            if (currentBGM.isPlaying)
+            {
+                currentBGM.Stop();
+                currentBGM = null;
+            }
+        }
+    }
+
+    public void PlaySFX(SFXType type)
     {
         if (!UIManager.Ins.GetUI<UISettings>().InitSetting)
         {
@@ -63,36 +103,52 @@ public class AudioManager : Singleton<AudioManager>
             return;
         }
 
-        if (type == SFXType.Jump || type == SFXType.GravityCoilJump)
+        AudioSource sfxAudioSource;
+        if (sfxShellPool.Count > 0)
         {
-            if (jumpSFXTimer < jumpSFXCooldown)
-            {
-                return;
-            }
-            jumpSFXTimer = 0f;
-        }
+            sfxAudioSource = sfxShellPool[0];
 
-        if (createdSFXAudio.ContainsKey(type))
-        {
-            createdSFXAudio[type].Play();
+            sfxShellPool.Remove(sfxAudioSource);   
         }
         else
         {
-            AudioSource sfxAudioSource = gameObject.AddComponent<AudioSource>();
-            sfxAudioSource.clip = GetClip(type);
-            sfxAudioSource.loop = false;
-            sfxAudioSource.outputAudioMixerGroup = sfxMixer;
-            sfxAudioSource.Play();
+            sfxAudioSource = Instantiate(sfxAudioSourceShell, transform);
+        }
 
-            createdSFXAudio.Add(type, sfxAudioSource);
+        InitSFXAudioSource(sfxAudioSource, type);
+        sfxAudioSource.gameObject.SetActive(true);
+        sfxAudioSource.Play();
+        StartCoroutine(IEWaitToCollectSFXShell(sfxAudioSource));
+    }
+
+    [ContextMenu("Regen SFX List")]
+    private void RegenSFX()
+    {
+        foreach (SFXType value in System.Enum.GetValues(typeof(SFXType)))
+        {
+            SFXAudioClip clip = new SFXAudioClip(value, null);
+            clips.Add(clip);
         }
     }
 
-    private void StopSFXAudio(SFXType type)
+    private void InitSFXAudioSource(AudioSource audioSource, SFXType type)
     {
-        if (createdSFXAudio.ContainsKey(type))
+        audioSource.clip = GetClip(type);
+    }
+
+    private IEnumerator IEWaitToCollectSFXShell(AudioSource audioSource)
+    {
+        while (true)
         {
-            createdSFXAudio[type].Stop();
+            if (!audioSource.isPlaying)
+            {
+                audioSource.clip = null;
+                audioSource.gameObject.SetActive(false);
+                sfxShellPool.Add(audioSource);
+                yield break;
+            }
+
+            yield return null;
         }
     }
 
@@ -149,4 +205,17 @@ public class SFXAudioClip
 {
     public SFXType type;
     public AudioClip clip;
+
+    public SFXAudioClip(SFXType type, AudioClip clip)
+    {
+        this.type = type;
+        this.clip = clip;
+    }
+}
+
+[System.Serializable]
+public class BGMAudio
+{
+    public BGMType type;
+    public AudioSource audioSource;
 }

@@ -63,6 +63,7 @@ public class UICanvas : MonoBehaviour
 
     public virtual void Preload()
     {
+        gameObject.SetActive(true);
         gameObject.SetActive(false);
     }
 

@@ -40,7 +40,7 @@ public class OnOffButton : MonoBehaviour
         iconOn.SetActive(isOn);
         iconOff.SetActive(!isOn);
 
-        onClickAction();
+        onClickAction?.Invoke();
     }
 
     public void RefreshButton()
