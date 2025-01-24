@@ -5,8 +5,8 @@ using UnityEngine;
 public enum PoolType
 {
     Default = 0,
-    PoolType1,
-
+    IceParticle,
+    IceHit,
 }
 
 /*
@@ -50,12 +50,35 @@ public static class SimplePool
         keyPools[gameUnit.poolType].Despawn(gameUnit);
     }
 
+    public static void DespawnToParent(GameUnit gameUnit)
+    {
+        keyPools[gameUnit.poolType].DespawnToParent(gameUnit);
+    }
+
     public static void CollectAll()
     {
         foreach (var item in keyPools)
         {
             item.Value.Collect();
         }
+    }
+
+    public static void CollectAllToParent()
+    {
+        foreach (var item in keyPools)
+        {
+            item.Value.CollectToParent();
+        }
+    }
+
+    public static void CollectPoolType(PoolType poolType)
+    {
+        keyPools[poolType].Collect();
+    }
+
+    public static void CollectPoolTypeToParent(PoolType poolType)
+    {
+        keyPools[poolType].CollectToParent();
     }
 
     public class Pool
@@ -103,11 +126,26 @@ public static class SimplePool
             activeUnits.Remove(gameUnit);
         }
 
+        public void DespawnToParent(GameUnit gameUnit)
+        {
+            gameUnit.gameObject.SetActive(false);
+            gameUnit.transform.parent = parent;
+            gameUnits.Add(gameUnit);
+            activeUnits.Remove(gameUnit);
+        }
         public void Collect()
         {
             for (int i = 0; i < activeUnits.Count; i++)
             {
                 Despawn(activeUnits[i]);
+            }
+        }
+
+        public void CollectToParent()
+        {
+            for (int i = 0; i < activeUnits.Count; i++)
+            {
+                DespawnToParent(activeUnits[i]);
             }
         }
     }
