@@ -7,11 +7,13 @@ public enum GameState
 
 public class GameManager : Singleton<GameManager>
 {
+    [SerializeField] bool MultiTouchEnable = true;
+
     private static GameState gameState;
 
     private void Awake()
     {
-        Input.multiTouchEnabled = true;
+        Input.multiTouchEnabled = MultiTouchEnable;
         Application.targetFrameRate = 60;
         Screen.sleepTimeout = SleepTimeout.NeverSleep;
     }

@@ -145,4 +145,16 @@ public static class MyUtilities
 
         return screenPosition;
     }
+
+    public static string FormatDateTime(DateTime dt)
+    {
+        return dt.ToString("HH:mm dd/MM/yyyy");
+    }
+
+    public static string MinuteSecondTimeFormat(float timer)
+    {
+        int minute = Mathf.FloorToInt(timer / 60f);
+        int second = Mathf.FloorToInt(timer % 60f);
+        return $"{minute:00}:{second:00}";
+    }
 }

@@ -12,7 +12,7 @@ namespace UnityEngine
         [SerializeField]
         private DefaultAsset directoryAsset;
 #endif
-        [SerializeField, Disable]
+        [SerializeField]
         private string path;
 
         void ISerializationCallbackReceiver.OnAfterDeserialize()

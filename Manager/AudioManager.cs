@@ -5,164 +5,85 @@ using UnityEngine.Audio;
 
 public class AudioManager : Singleton<AudioManager>
 {
-    [SerializeField] AudioMixer audioMixer;
-
-    [SerializeField] AudioMixerGroup sfxMixer;
-
-    #region Pool Part
-    [SerializeField] AudioSource sfxAudioSourceShell;
-
-    private List<AudioSource> sfxShellPool = new List<AudioSource>();
-
-    #endregion
-
-    [SerializeField] List<BGMAudio> bgms = new List<BGMAudio>();
-    [SerializeField] List<SFXAudioClip> clips = new List<SFXAudioClip>();
-
     const string MIXER_BGM = "BGMVolume";
     const string MIXER_SFX = "SFXVolume";
 
-    AudioSource currentBGM;
+    [SerializeField] AudioMixer audioMixer;
+    [SerializeField] AudioSource bgmAudioSource;
 
-   
-    private void Awake()
-    {
-        this.RegisterListener(EventID.SetMusicSetting, (param) =>
-        {
-            if ((bool)param)
-            {
-                UnmuteMusicVolume();
-            }
-            else
-            {
-                MuteMusicVolume();
-            }
-        });
-        this.RegisterListener(EventID.SetSoundSetting, (param) =>
-        {
-            if ((bool)param)
-            {
-                UnmuteSFXVolume();
-            }
-            else
-            {
-                MuteSFXVolume();
-            }
-        });
-        this.RegisterListener(EventID.PlaySFX, (param) => PlaySFX((SFXType)param));
-        //this.RegisterListener(EventID.StopSFX, (param) => StopSFXAudio((SFXType)param));
-    }
+    [SerializeField] AudioSource sfxAudioSourceShell;
+
+    [SerializeField] SerializedDictionary<BGMType, AudioClip> bgmClipMap = new();
+    [SerializeField] SerializedDictionary<SFXType, AudioClip> sfxClipMap = new();
+
+    private List<AudioSource> sfxShellPool = new();
+    private BGMType currentBGM;
 
     public void PlayBGM(BGMType type)
     {
-        for (int i = 0; i < bgms.Count; i++)
-        {
-            if (bgms[i].type == type)
-            {
-                if (currentBGM == bgms[i].audioSource)
-                {
-                    return;
-                }
-                else
-                {
-                    if (currentBGM != null)
-                    {
-                        if (currentBGM.isPlaying)
-                        {
-                            currentBGM.Stop();
-                        }
-                    }
-                    currentBGM = bgms[i].audioSource;
-                    currentBGM.Play();
-                    return;
-                }
-            }
-        }
+        if (currentBGM == type)
+            return;
+
+        bgmAudioSource.clip = bgmClipMap[type];
+        bgmAudioSource.Play();
+
+        currentBGM = type;
     }
 
     public void StopBGM()
     {
-        if (currentBGM != null)
-        {
-            if (currentBGM.isPlaying)
-            {
-                currentBGM.Stop();
-                currentBGM = null;
-            }
-        }
+        if (bgmAudioSource.isPlaying)
+            bgmAudioSource.Stop();
     }
 
-    public void PlaySFX(SFXType type)
+    public AudioSource PlaySFX(SFXType type, bool isLoop = false, Transform target = null, bool setParent = false)
     {
-        if (!UIManager.Ins.GetUI<UISettings>().InitSetting)
-        {
-            return;
-        }
-        if (!DataManager.Ins.GetSoundSetting())
-        {
-            return;
-        }
-
         AudioSource sfxAudioSource;
         if (sfxShellPool.Count > 0)
         {
             sfxAudioSource = sfxShellPool[0];
 
-            sfxShellPool.Remove(sfxAudioSource);   
+            sfxShellPool.Remove(sfxAudioSource);
         }
         else
         {
             sfxAudioSource = Instantiate(sfxAudioSourceShell, transform);
         }
 
-        InitSFXAudioSource(sfxAudioSource, type);
+        if (target != null)
+        {
+            sfxAudioSource.transform.position = target.position;
+        }
+        if (setParent)
+        {
+            sfxAudioSource.transform.parent = target;
+        }
+
+        sfxAudioSource.loop = isLoop;
+        sfxAudioSource.clip = sfxClipMap[type];
+        sfxAudioSource.spatialBlend = (target == null) ? 0 : 1;
         sfxAudioSource.gameObject.SetActive(true);
         sfxAudioSource.Play();
-        StartCoroutine(IEWaitToCollectSFXShell(sfxAudioSource));
+
+        if (!isLoop)
+            StartCoroutine(IECollectSFXShell(sfxAudioSource, sfxClipMap[type].length));
+
+        return sfxAudioSource;
     }
 
-    [ContextMenu("Regen SFX List")]
-    private void RegenSFX()
+    public void StopSFX(AudioSource audioSource)
     {
-        foreach (SFXType value in System.Enum.GetValues(typeof(SFXType)))
-        {
-            SFXAudioClip clip = new SFXAudioClip(value, null);
-            clips.Add(clip);
-        }
+        audioSource.clip = null;
+        audioSource.gameObject.SetActive(false);
+        audioSource.transform.parent = transform;
+        sfxShellPool.Add(audioSource);
     }
 
-    private void InitSFXAudioSource(AudioSource audioSource, SFXType type)
+    private IEnumerator IECollectSFXShell(AudioSource audioSource, float delay)
     {
-        audioSource.clip = GetClip(type);
-    }
+        yield return new WaitForSeconds(delay);
 
-    private IEnumerator IEWaitToCollectSFXShell(AudioSource audioSource)
-    {
-        while (true)
-        {
-            if (!audioSource.isPlaying)
-            {
-                audioSource.clip = null;
-                audioSource.gameObject.SetActive(false);
-                sfxShellPool.Add(audioSource);
-                yield break;
-            }
-
-            yield return null;
-        }
-    }
-
-    private AudioClip GetClip(SFXType type)
-    {
-        for (int i = 0; i < clips.Count; i++)
-        {
-            if (clips[i].type == type)
-            {
-                return clips[i].clip;
-            }
-        }
-
-        return null;
+        StopSFX(audioSource);
     }
 
     #region Better way to control volume
@@ -178,44 +99,24 @@ public class AudioManager : Singleton<AudioManager>
         audioMixer.SetFloat(MIXER_SFX, Mathf.Log10(value) * 20f);
     }
 
-    private void MuteMusicVolume()
+    public void MuteMusicVolume()
     {
         audioMixer.SetFloat(MIXER_BGM, -80f);
     }
 
-    private void MuteSFXVolume()
+    public void MuteSFXVolume()
     {
         audioMixer.SetFloat(MIXER_SFX, -80f);
     }
 
-    private void UnmuteMusicVolume()
+    public void UnmuteMusicVolume()
     {
         audioMixer.SetFloat(MIXER_BGM, 0f);
     }
 
-    private void UnmuteSFXVolume()
+    public void UnmuteSFXVolume()
     {
         audioMixer.SetFloat(MIXER_SFX, 0f);
     }
     #endregion
-}
-
-[System.Serializable]
-public class SFXAudioClip
-{
-    public SFXType type;
-    public AudioClip clip;
-
-    public SFXAudioClip(SFXType type, AudioClip clip)
-    {
-        this.type = type;
-        this.clip = clip;
-    }
-}
-
-[System.Serializable]
-public class BGMAudio
-{
-    public BGMType type;
-    public AudioSource audioSource;
 }

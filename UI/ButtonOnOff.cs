@@ -1,30 +1,38 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class OnOffButton : MonoBehaviour
+public class ButtonOnOff : MonoBehaviour
 {
     [SerializeField] GameObject iconOn;
     [SerializeField] GameObject iconOff;
     [SerializeField] Button btn;
 
     private bool isOn;
-    private ButtonClickAction onClickAction;
+    private Action onClickAction;
 
     public bool IsOn => isOn;
+
+#if UNITY_EDITOR
+    [ContextMenu("Setup")]
+    public void Setup()
+    {
+        iconOn = transform.Find("IconOn").gameObject;
+        iconOff = transform.Find("IconOff").gameObject;
+        btn = GetComponent<Button>();
+    }
+#endif
 
     private void Awake()
     {
         btn.onClick.AddListener(() =>
         {
-            this.PostEvent(EventID.PlaySFX, SFXType.ButtonClick);
+            AudioManager.Ins.PlaySFX(SFXType.ClickButton);
             SwitchState();
         });
     }
 
-    public void SetOnClickAction(ButtonClickAction action)
+    public void AddListener(Action action)
     {
         onClickAction = action;
     }
@@ -34,13 +42,14 @@ public class OnOffButton : MonoBehaviour
         SetState(!isOn);
     }
 
-    public void SetState(bool isOn)
+    public void SetState(bool isOn, bool invokeAction = true)
     {
         this.isOn = isOn;
         iconOn.SetActive(isOn);
         iconOff.SetActive(!isOn);
 
-        onClickAction?.Invoke();
+        if (invokeAction)
+            onClickAction?.Invoke();
     }
 
     public void RefreshButton()

@@ -4,16 +4,10 @@ using UnityEngine;
 
 public class UICanvas : MonoBehaviour
 {
-    [SerializeField] protected Animator animator;
-
     //public bool IsAvoidBackKey = false;
     public bool IsDestroyOnClose = false;
 
     protected RectTransform m_RectTransform;
-    //private Animator m_Animator;
-    private float m_OffsetY = 0;
-
-    private string currentAnim;
 
     private void Start()
     {
@@ -23,20 +17,6 @@ public class UICanvas : MonoBehaviour
     protected void OnInit()
     {
         m_RectTransform = GetComponent<RectTransform>();
-        //m_Animator = GetComponent<Animator>();
-
-        // xu ly tai tho
-        //float ratio = (float)Screen.height / (float)Screen.width;
-        //if (ratio > 2.1f)
-        //{
-        //    Vector2 leftBottom = m_RectTransform.offsetMin;
-        //    Vector2 rightTop = m_RectTransform.offsetMax;
-        //    rightTop.y = -100f;
-        //    m_RectTransform.offsetMax = rightTop;
-        //    leftBottom.y = 0f;
-        //    m_RectTransform.offsetMin = leftBottom;
-        //    m_OffsetY = 100f;
-        //}
     }
 
     //Setup canvas to avoid flash UI
@@ -77,7 +57,7 @@ public class UICanvas : MonoBehaviour
         {
             Destroy(gameObject);
         }
-        
+
     }
 
     //close canvas with delay time, used to anim UI action
@@ -85,18 +65,5 @@ public class UICanvas : MonoBehaviour
     public virtual void Close(float delayTime)
     {
         Invoke(nameof(CloseDirectly), delayTime);
-    }
-
-    public void ChangeAnim(string animName)
-    {
-        if (currentAnim != animName)
-        {
-            if (currentAnim != null)
-            {
-                animator.ResetTrigger(currentAnim);
-            }
-            currentAnim = animName;
-            animator.SetTrigger(currentAnim);
-        }
     }
 }
