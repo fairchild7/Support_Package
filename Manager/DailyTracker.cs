@@ -29,6 +29,10 @@ public class DailyTracker : Singleton<DailyTracker>
             ES3.Save<DateTime>(DATE_KEY, today);
             Debug.Log("Keys have been reset to default values for the new day.");
         }
+        else
+        {
+            Debug.Log("Still old day..");
+        }
     }
 
     /// <summary>
@@ -38,7 +42,7 @@ public class DailyTracker : Singleton<DailyTracker>
     void ResetDefaultValues()
     {
         SetValue<int>(MyConstants.DAILY_WATCH_ADS_TIME, 6);
-
+        SetValue<bool>(MyConstants.IS_CLAIMED_DAILY_REWARD, false);
         // Add additional keys and default values here if needed.
     }
 
@@ -67,5 +71,17 @@ public class DailyTracker : Singleton<DailyTracker>
     public void SetValue<T>(string key, T value)
     {
         ES3.Save<T>(key, value);
+    }
+    
+    /// <summary>
+     /// Gets the remaining time (in seconds) until the next day.
+     /// </summary>
+     /// <returns>Time remaining in seconds as a float.</returns>
+    public float GetSecondsUntilNextDay()
+    {
+        DateTime now = DateTime.Now;
+        DateTime nextDay = now.Date.AddDays(1); // Get tomorrow at 00:00:00
+        TimeSpan timeRemaining = nextDay - now;
+        return (float)timeRemaining.TotalSeconds;
     }
 }

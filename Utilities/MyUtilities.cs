@@ -2,7 +2,6 @@
 using System.Linq;
 using System.Text;
 using System;
-using Unity.VisualScripting;
 using UnityEngine;
 
 public static class MyUtilities
@@ -156,5 +155,34 @@ public static class MyUtilities
         int minute = Mathf.FloorToInt(timer / 60f);
         int second = Mathf.FloorToInt(timer % 60f);
         return $"{minute:00}:{second:00}";
+    }
+
+    public static string HourMinuteSecondTimeFormat(float timer)
+    {
+        int hour = Mathf.FloorToInt(timer / 3600f);
+        int minute = Mathf.FloorToInt((timer % 3600f) / 60f);
+        int second = Mathf.FloorToInt((timer % 3600f) % 60f);
+        return $"{hour:00}:{minute:00}:{second:00}";
+    }
+
+    public static Vector2 GetSpritePivot(Sprite sprite)
+    {
+        Bounds bounds = sprite.bounds;
+        var pivotX = -bounds.center.x / bounds.extents.x / 2 + 0.5f;
+        var pivotY = -bounds.center.y / bounds.extents.y / 2 + 0.5f;
+
+        return new Vector2(pivotX, pivotY);
+    }
+
+    public static T GetRandomElementFromList<T>(List<T> list)
+    {
+        if (list == null || list.Count == 0)
+        {
+            Debug.LogWarning("List has no element or null!");
+            return default;
+        }
+
+        int randomIndex = UnityEngine.Random.Range(0, list.Count);
+        return list[randomIndex];
     }
 }
