@@ -1,3 +1,4 @@
+using DG.Tweening;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -19,6 +20,12 @@ public class AudioManager : Singleton<AudioManager>
     private List<AudioSource> sfxShellPool = new();
     private BGMType currentBGM;
 
+    private Dictionary<SFXType, bool> playingSfx = new();
+    private Dictionary<SFXType, bool> cooldownSfx = new();
+
+    //Serialized for debugging
+    [SerializeField] SerializedDictionary<AudioSource, Coroutine> waitingToClaimSFXSources = new();
+
     public void PlayBGM(BGMType type)
     {
         if (currentBGM == type)
@@ -36,8 +43,54 @@ public class AudioManager : Singleton<AudioManager>
             bgmAudioSource.Stop();
     }
 
-    public AudioSource PlaySFX(SFXType type, bool isLoop = false, Transform target = null, bool setParent = false)
+    public AudioSource PlaySFX(SFXType type, bool isLoop = false, Transform target = null, bool setParent = false, bool canPlayWhenThereIsDuplicatedSFX = true,
+        float delayBeforeCanPlayAgain = 0)
     {
+        if (!canPlayWhenThereIsDuplicatedSFX)
+        {
+            if (!playingSfx.ContainsKey(type))
+            {
+                playingSfx.Add(type, true);
+            }
+            else
+            {
+                if (playingSfx[type])
+                {
+                    return null;
+                }
+                else
+                {
+                    playingSfx[type] = true;
+                }
+            }
+        }
+
+        if (delayBeforeCanPlayAgain > 0)
+        {
+            if (!cooldownSfx.ContainsKey(type))
+            {
+                cooldownSfx.Add(type, true);
+                DOVirtual.DelayedCall(delayBeforeCanPlayAgain, () =>
+                {
+                    cooldownSfx[type] = false;
+                });
+            }
+            else
+            {
+                if (cooldownSfx[type])
+                {
+                    return null;
+                }
+                else
+                {
+                    cooldownSfx[type] = true;
+                    DOVirtual.DelayedCall(delayBeforeCanPlayAgain, () =>
+                    {
+                        cooldownSfx[type] = false;
+                    });
+                }
+            }
+        }
         AudioSource sfxAudioSource;
         if (sfxShellPool.Count > 0)
         {
@@ -66,24 +119,45 @@ public class AudioManager : Singleton<AudioManager>
         sfxAudioSource.Play();
 
         if (!isLoop)
-            StartCoroutine(IECollectSFXShell(sfxAudioSource, sfxClipMap[type].length));
+        {
+            Coroutine cor = StartCoroutine(IECollectSFXShell(sfxAudioSource, sfxClipMap[type].length, canPlayWhenThereIsDuplicatedSFX, type));
+            waitingToClaimSFXSources.Add(sfxAudioSource, cor);
+        }
 
         return sfxAudioSource;
     }
 
     public void StopSFX(AudioSource audioSource)
     {
+        if (audioSource == null)
+            return;
+
+        if (!waitingToClaimSFXSources.ContainsKey(audioSource))
+        {
+            return;
+        }
+
         audioSource.clip = null;
         audioSource.gameObject.SetActive(false);
         audioSource.transform.parent = transform;
         sfxShellPool.Add(audioSource);
+
+        waitingToClaimSFXSources.Remove(audioSource);
     }
 
-    private IEnumerator IECollectSFXShell(AudioSource audioSource, float delay)
+    private IEnumerator IECollectSFXShell(AudioSource audioSource, float delay, bool canDuplicatedPlaying = true, SFXType nonDuplicatedSFXType = 0)
     {
         yield return new WaitForSeconds(delay);
 
         StopSFX(audioSource);
+
+        if (!canDuplicatedPlaying)
+        {
+            if (playingSfx.ContainsKey(nonDuplicatedSFXType))
+            {
+                playingSfx[nonDuplicatedSFXType] = false;
+            }
+        }
     }
 
     #region Better way to control volume
